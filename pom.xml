@@ -39,6 +39,8 @@
 	</issueManagement>
 
 	<properties>
+		<guava.version>19.0</guava.version>
+		<commons-math3.version>3.1</commons-math3.version>
 		<project.build.outputTimestamp>2024-08-08T07:15:00Z</project.build.outputTimestamp>
 	</properties>
 
@@ -46,6 +48,12 @@
 		<dependency>
 			<groupId>org.jpmml</groupId>
 			<artifactId>pmml-evaluator</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-annotations</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.jpmml</groupId>
@@ -56,6 +64,20 @@
 					<artifactId>txw2</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+
+		<!-- Pinned to an earlier version in order to minimize JPMML package size -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
+		</dependency>
+
+		<!-- Pinned to an earlier version in order to minimize JPMML package size -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>${commons-math3.version}</version>
 		</dependency>
 	</dependencies>
 
@@ -96,6 +118,18 @@
 							<goal>create-classpath</goal>
 						</goals>
 						<configuration>
+							<minify>
+								<artifacts>
+									<artifact>com.google.guava:guava</artifact>
+									<artifact>org.apache.commons:commons-math3</artifact>
+								</artifacts>
+								<entryPoints>
+									<entryPoint>org.jpmml.evaluator.Evaluator</entryPoint>
+								</entryPoints>
+								<serviceEntryPoints>
+									<serviceEntryPoint>META-INF/services/org.jpmml.evaluator.ModelEvaluator</serviceEntryPoint>
+								</serviceEntryPoints>
+							</minify>
 							<outputDirectory>${project.basedir}/inst/java</outputDirectory>
 						</configuration>
 					</execution>
