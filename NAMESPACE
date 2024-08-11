@@ -1,0 +1,4 @@
+importFrom("methods", "is", "new", "setClass", "setGeneric", "setMethod")
+importFrom("rJava", ".jcall", ".jinit", ".jnew", ".jrcall", ".jsimplify")
+
+exportPattern("^[^\\.]")
