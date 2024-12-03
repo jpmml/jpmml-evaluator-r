@@ -66,6 +66,18 @@
 			</exclusions>
 		</dependency>
 
+		<dependency>
+			<groupId>org.jpmml</groupId>
+			<artifactId>pmml-rexp</artifactId>
+			<version>1.6.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 		<!-- Pinned to an earlier version in order to minimize JPMML package size -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -122,9 +134,11 @@
 								<artifacts>
 									<artifact>com.google.guava:guava</artifact>
 									<artifact>org.apache.commons:commons-math3</artifact>
+									<artifact>org.jpmml:pmml-rexp</artifact>
 								</artifacts>
 								<entryPoints>
 									<entryPoint>org.jpmml.evaluator.Evaluator</entryPoint>
+									<entryPoint>org.jpmml.evaluator.rexp.RExpUtil</entryPoint>
 								</entryPoints>
 								<serviceEntryPoints>
 									<serviceEntryPoint>META-INF/services/org.jpmml.evaluator.ModelEvaluator</serviceEntryPoint>

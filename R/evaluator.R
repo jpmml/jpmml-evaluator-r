@@ -17,61 +17,19 @@ setMethod("verify",
 	}
 )
 
-formatArguments = function(arguments){
-	javaArguments = .jnew("java/util/HashMap")
+serializeArguments = function(arguments){
+	conn = rawConnection(raw(0), "r+")
+	serialize(arguments, conn, ascii = FALSE)
+	rdsArguments = rawConnectionValue(conn)
+	close(conn)
 
-	for(name in names(arguments)){
-		value = arguments[[name]]
-
-		if(is.integer(value)){
-			javaValue = .jnew("java/lang/Integer", value)
-		} else
-
-		if(is.numeric(value)){
-			javaValue = .jnew("java/lang/Double", value)
-		} else
-
-		if(is.logical(value)){
-			javaValue = .jnew("java/lang/Boolean", value)
-		} else
-
-		if(is.character(value)){
-			javaValue = .jnew("java/lang/String", value)
-		} else
-
-		if(is.factor(value)){
-			javaValue = .jnew("java/lang/String", as.character(value))
-		} else
-
-		{
-			stop("Not a scalar value")
-		}
-
-		.jrcall(javaArguments, "put", name, javaValue)
-	}
-
-	return(javaArguments)
+	return(rdsArguments)
 }
 
-parseResults = function(javaResults){
-	results = list()
-
-	javaKeySet = .jrcall(javaResults, "keySet")
-
-	javaIt = .jrcall(javaKeySet, "iterator")
-	while(.jrcall(javaIt, "hasNext")){
-		javaName = .jrcall(javaIt, "next")
-		javaValue = .jrcall(javaResults, "get", javaName)
-
-		name = .jsimplify(javaName)
-		value = .jsimplify(javaValue)
-
-		if(is(value, "jobjRef")){
-			value = .jrcall("org/jpmml/evaluator/EvaluatorUtil", "decode", value)
-		}
-
-		results[[name]] = value
-	}
+unserializeResults = function(rdsResults){
+	conn = rawConnection(rdsResults)
+	results = unserialize(conn)
+	close(conn)
 
 	return(results)
 }
@@ -84,9 +42,9 @@ setGeneric("evaluate",
 setMethod("evaluate",
 	signature = c("Evaluator", "list"),
 	definition = function(evaluator, arguments){
-		javaArguments = formatArguments(arguments)
-		javaResults = .jrcall(evaluator@javaEvaluator, "evaluate", javaArguments)
-		results = parseResults(javaResults)
+		rdsArguments = serializeArguments(arguments)
+		rdsResults = J("org.jpmml.evaluator.rexp.RExpUtil")$evaluate(evaluator@javaEvaluator, rdsArguments)
+		results = unserializeResults(rdsResults)
 		return(results)
 	}
 )

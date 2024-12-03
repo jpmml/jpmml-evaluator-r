@@ -10,3 +10,4 @@ pmml-evaluator-1.6.7.jar
 pmml-evaluator-metro-1.6.7.jar
 pmml-model-1.6.7.jar
 pmml-model-metro-1.6.7.jar
+pmml-rexp-1.6.2-minified.jar
