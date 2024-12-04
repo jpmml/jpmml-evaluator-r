@@ -57,10 +57,9 @@ setGeneric("evaluateAll",
 setMethod("evaluateAll",
 	signature = c("Evaluator", "data.frame"),
 	definition = function(evaluator, argumentsDf){
-		results = apply(argumentsDf, 1, function(x){
-			return(evaluate(evaluator, as.list(x))) 
-		})
-		resultsDf = as.data.frame(do.call(rbind, results))
+		rdsArgumentsDf = serializeArguments(argumentsDf)
+		rdsResultsDf = J("org.jpmml.evaluator.rexp.RExpUtil")$evaluateAll(evaluator@javaEvaluator, rdsArgumentsDf)
+		resultsDf = data.frame(unserializeResults(rdsResultsDf), check.names = FALSE)
 		return(resultsDf)
 	}
 )
