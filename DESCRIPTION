@@ -2,7 +2,8 @@ Package: jpmml
 Version: 0.1
 License: AGPL-3
 Title: PMML evaluator library for R
-Description: N/A
+Description: R wrapper for the JPMML-Evaluator library
+    <https://github.com/jpmml/jpmml-evaluator>.
 Author: Villu Ruusmann <villu.ruusmann@gmail.com>
 Maintainer: Villu Ruusmann <villu.ruusmann@gmail.com>
 URL: https://github.com/jpmml/jpmml-evaluator-r
