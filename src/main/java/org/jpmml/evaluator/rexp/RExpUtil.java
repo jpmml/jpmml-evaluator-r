@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
@@ -55,44 +56,33 @@ public class RExpUtil {
 	public byte[] evaluate(Evaluator evaluator, byte[] listBytes) throws Exception {
 		RGenericVector argumentsList = (RGenericVector)unserialize(listBytes);
 
-		Map<String, Object> arguments = new LinkedHashMap<>();
+		RGenericVector resultsList = evaluate(evaluator, argumentsList);
 
-		RStringVector argumentNames = argumentsList.names();
-		List<RExp> argumentValues = argumentsList.getValues();
+		return serialize(resultsList);
+	}
 
-		for(int i = 0; i < argumentNames.size(); i++){
-			String name = argumentNames.getDequotedValue(i);
-			RVector<?> vector = (RVector<?>)argumentValues.get(i);
-
-			Object value = vector.asScalar();
-
-			arguments.put(name, value);
-		}
+	static
+	public RGenericVector evaluate(Evaluator evaluator, RGenericVector argumentsList){
+		Map<String, ?> arguments = parseNamedList(argumentsList);
 
 		Map<String, ?> results = evaluator.evaluate(arguments);
 
-		RStringVector resultNames = new RStringVector(new ArrayList<>(results.keySet()), null);
-		List<RExp> resultValues = new ArrayList<>();
+		results = EvaluatorUtil.decodeAll(results);
 
-		for(int i = 0; i < resultNames.size(); i++){
-			String name = resultNames.getDequotedValue(i);
-
-			Object value = EvaluatorUtil.decode(results.get(name));
-
-			resultValues.add(createScalar(value));
-		}
-
-		RPair attributes = new RPair(new RString("names"), resultNames, null);
-
-		RGenericVector resultsList = new RGenericVector(resultValues, attributes);
-
-		return serialize(resultsList);
+		return formatNamedList(results);
 	}
 
 	static
 	public byte[] evaluateAll(Evaluator evaluator, byte[] dataFrameBytes) throws Exception {
 		RGenericVector argumentsDataFrame = (RGenericVector)unserialize(dataFrameBytes);
 
+		RGenericVector resultsDataFrame = evaluateAll(evaluator, argumentsDataFrame);
+
+		return serialize(resultsDataFrame);
+	}
+
+	static
+	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame){
 		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
 		TableReader argumentsReader = new TableReader(argumentsTable){
@@ -127,54 +117,82 @@ public class RExpUtil {
 
 		resultsTable.canonicalize();
 
-		RGenericVector resultsDataFrame = formatDataFrame(resultsTable);
+		return formatDataFrame(resultsTable);
+	}
 
-		return serialize(resultsDataFrame);
+	static
+	private Map<String, ?> parseNamedList(RGenericVector namedList){
+		RStringVector names = namedList.names();
+
+		Map<String, Object> result = new LinkedHashMap<>();
+
+		for(int i = 0; i < names.size(); i++){
+			String name = names.getDequotedValue(i);
+			RVector<?> vector = (RVector<?>)namedList.getValue(i);
+
+			Object value = vector.asScalar();
+
+			result.put(name, value);
+		}
+
+		return result;
+	}
+
+	static
+	private RGenericVector formatNamedList(Map<String, ?> map){
+		List<String> names = new ArrayList<>();
+		List<RExp> values = new ArrayList<>();
+
+		Set<? extends Map.Entry<String, ?>> entries = map.entrySet();
+		for(Map.Entry<String, ?> entry : entries){
+			String name = entry.getKey();
+			Object value = entry.getValue();
+
+			RVector<?> vector = createScalar(value);
+
+			names.add(name);
+			values.add(vector);
+		}
+
+		RPair attributes = new RPair(new RString("names"), new RStringVector(names, null), null);
+
+		return new RGenericVector(values, attributes);
 	}
 
 	static
 	private Table parseDataFrame(RGenericVector dataFrame){
 		RStringVector names = dataFrame.names();
 
-		List<String> columns = names.getDequotedValues();
+		Table result = new Table(names.getDequotedValues());
 
-		Table table = new Table(columns);
-
-		for(int i = 0; i < columns.size(); i++){
-			String column = columns.get(i);
-			RVector<?> vector = dataFrame.getVectorElement(column);
+		for(int i = 0; i < names.size(); i++){
+			String name = names.getDequotedValue(i);
+			RVector<?> vector = (RVector<?>)dataFrame.getValue(i);
 
 			List<?> values = vector.getValues();
 
-			table.setValues(column, values);
+			result.setValues(name, values);
 		}
 
-		return table;
+		return result;
 	}
 
 	static
 	private RGenericVector formatDataFrame(Table table){
-		List<String> columns = table.getColumns();
-
-		RStringVector names = new RStringVector(columns, null);
-
+		List<String> names = new ArrayList<>(table.getColumns());
 		List<RExp> vectors = new ArrayList<>();
 
-		for(int i = 0; i < columns.size(); i++){
-			String column = columns.get(i);
-			List<?> values = table.getValues(column);
+		for(String name : names){
+			List<?> values = table.getValues(name);
 
 			RVector<?> vector = createVector(values);
 
 			vectors.add(vector);
 		}
 
-		// XXX
-		RPair attributes = new RPair(new RString("names"), names, null);
+		RPair attributes = new RPair(new RString("names"), new RStringVector(names, null), null);
 
-		RGenericVector dataFrame = new RGenericVector(vectors, attributes);
-
-		return dataFrame;
+		return new RGenericVector(vectors, attributes);
 	}
 
 	static
