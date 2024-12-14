@@ -21,20 +21,19 @@ package org.jpmml.evaluator.rexp;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import org.jpmml.evaluator.Evaluator;
 import org.jpmml.evaluator.EvaluatorUtil;
+import org.jpmml.evaluator.Table;
+import org.jpmml.evaluator.TableReader;
+import org.jpmml.evaluator.TableWriter;
 import org.jpmml.rexp.RBooleanVector;
 import org.jpmml.rexp.RDoubleVector;
 import org.jpmml.rexp.RExp;
@@ -94,74 +93,88 @@ public class RExpUtil {
 	public byte[] evaluateAll(Evaluator evaluator, byte[] dataFrameBytes) throws Exception {
 		RGenericVector argumentsDataFrame = (RGenericVector)unserialize(dataFrameBytes);
 
-		int numberOfRows = -1;
+		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
-		for(int i = 0; i < argumentsDataFrame.size(); i++){
-			RVector<?> column = (RVector<?>)argumentsDataFrame.getValue(i);
-
-			numberOfRows = Math.max(numberOfRows, column.size());
-		}
-
-		RStringVector argumentNames = argumentsDataFrame.names();
-
-		ColumnMapper argumentsMapper = new ColumnMapper(argumentNames.getDequotedValues());
-
-		DataFrameArguments arguments = new DataFrameArguments(){
+		TableReader argumentsReader = new TableReader(argumentsTable){
 
 			@Override
 			public Object get(Object key){
-				Integer index = argumentsMapper.get((String)key);
-
-				if(index != null){
-					RVector<?> column = (RVector<?>)argumentsDataFrame.getValue(index);
-
-					return column.getValue(this.row);
-				}
-
-				return null;
+				return super.get((String)key);
 			}
 		};
 
-		Map<String, List<Object>> results = new LinkedHashMap<>();
+		Table resultsTable = new Table();
 
-		for(int i = 0; i < numberOfRows; i++){
-			Map<String, ?> rowResults = evaluator.evaluate(arguments);
+		TableWriter resultsWriter = new TableWriter(resultsTable){
 
-			Collection<? extends Map.Entry<String, ?>> entries = rowResults.entrySet();
-			for(Map.Entry<String, ?> entry : entries){
-				String key = entry.getKey();
-				Object value = EvaluatorUtil.decode(entry.getValue());
+			@Override
+			public Object put(String key, Object value){
+				value = EvaluatorUtil.decode(value);
 
-				List<Object> values = results.get(key);
-				if(values == null){
-					values = new ArrayList<>();
-
-					results.put(key, values);
-				}
-
-				values.add(value);
+				return super.put(key, value);
 			}
+		};
 
-			arguments.next();
+		while(argumentsReader.hasNext()){
+			Map<String, ?> arguments = argumentsReader.next();
+
+			resultsWriter.next();
+
+			Map<String, ?> results = evaluator.evaluate(arguments);
+
+			resultsWriter.putAll(results);
 		}
 
-		RStringVector resultNames = new RStringVector(new ArrayList<>(results.keySet()), null);
-		List<RExp> resultValues = new ArrayList<>();
+		resultsTable.canonicalize();
 
-		for(int i = 0; i < resultNames.size(); i++){
-			String name = resultNames.getDequotedValue(i);
+		RGenericVector resultsDataFrame = formatDataFrame(resultsTable);
 
-			List<?> values = results.get(name);
+		return serialize(resultsDataFrame);
+	}
 
-			resultValues.add(createVector(values));
+	static
+	private Table parseDataFrame(RGenericVector dataFrame){
+		RStringVector names = dataFrame.names();
+
+		List<String> columns = names.getDequotedValues();
+
+		Table table = new Table(columns);
+
+		for(int i = 0; i < columns.size(); i++){
+			String column = columns.get(i);
+			RVector<?> vector = dataFrame.getVectorElement(column);
+
+			List<?> values = vector.getValues();
+
+			table.setValues(column, values);
+		}
+
+		return table;
+	}
+
+	static
+	private RGenericVector formatDataFrame(Table table){
+		List<String> columns = table.getColumns();
+
+		RStringVector names = new RStringVector(columns, null);
+
+		List<RExp> vectors = new ArrayList<>();
+
+		for(int i = 0; i < columns.size(); i++){
+			String column = columns.get(i);
+			List<?> values = table.getValues(column);
+
+			RVector<?> vector = createVector(values);
+
+			vectors.add(vector);
 		}
 
 		// XXX
-		RPair attributes = new RPair(new RString("names"), resultNames, null);
+		RPair attributes = new RPair(new RString("names"), names, null);
 
-		RGenericVector resultsDataFrame = new RGenericVector(resultValues, attributes);
+		RGenericVector dataFrame = new RGenericVector(vectors, attributes);
 
-		return serialize(resultsDataFrame);
+		return dataFrame;
 	}
 
 	static
@@ -264,38 +277,6 @@ public class RExpUtil {
 			}
 
 			return os.toByteArray();
-		}
-	}
-
-	static
-	private class ColumnMapper extends HashMap<String, Integer> {
-
-		public ColumnMapper(){
-		}
-
-		public ColumnMapper(List<String> columns){
-
-			for(int i = 0; i < columns.size(); i++){
-				String column = columns.get(i);
-
-				putIfAbsent(column, size());
-			}
-		}
-	}
-
-	static
-	private class DataFrameArguments extends AbstractMap<String, Object> {
-
-		protected int row = 0;
-
-
-		@Override
-		public Set<Entry<String, Object>> entrySet(){
-			throw new UnsupportedOperationException();
-		}
-
-		public void next(){
-			this.row++;
 		}
 	}
 }
