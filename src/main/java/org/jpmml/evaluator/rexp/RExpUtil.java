@@ -22,14 +22,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.primitives.Doubles;
-import com.google.common.primitives.Ints;
 import org.jpmml.evaluator.Evaluator;
 import org.jpmml.evaluator.EvaluatorUtil;
 import org.jpmml.evaluator.Table;
@@ -42,8 +39,6 @@ import org.jpmml.rexp.RExpParser;
 import org.jpmml.rexp.RExpWriter;
 import org.jpmml.rexp.RGenericVector;
 import org.jpmml.rexp.RIntegerVector;
-import org.jpmml.rexp.RPair;
-import org.jpmml.rexp.RString;
 import org.jpmml.rexp.RStringVector;
 import org.jpmml.rexp.RVector;
 
@@ -154,9 +149,10 @@ public class RExpUtil {
 			values.add(vector);
 		}
 
-		RPair attributes = new RPair(new RString("names"), new RStringVector(names, null), null);
+		RGenericVector result = new RGenericVector(values, null);
+		result.addAttribute("names", new RStringVector(names, null));
 
-		return new RGenericVector(values, attributes);
+		return result;
 	}
 
 	static
@@ -190,42 +186,29 @@ public class RExpUtil {
 			vectors.add(vector);
 		}
 
-		RPair attributes = new RPair(new RString("names"), new RStringVector(names, null), null);
+		RGenericVector result = new RGenericVector(vectors, null);
+		result.addAttribute("names", new RStringVector(names, null));
 
-		return new RGenericVector(vectors, attributes);
+		return result;
 	}
 
 	static
 	private RVector<?> createScalar(Object value){
 
-		if(value instanceof Double){
-			Double doubleValue = (Double)value;
-
-			return new RDoubleVector(new double[]{doubleValue.doubleValue()}, null);
-		} else
-
-		if(value instanceof Float){
-			Float floatValue = (Float)value;
-
-			return new RDoubleVector(new double[]{floatValue.floatValue()}, null);
+		if(value instanceof Double || value instanceof Float){
+			return new RDoubleVector((Number)value, null);
 		} else
 
 		if(value instanceof Integer){
-			Integer integerValue = (Integer)value;
-
-			return new RIntegerVector(new int[]{integerValue.intValue()}, null);
+			return new RIntegerVector((Integer)value, null);
 		} else
 
 		if(value instanceof Boolean){
-			Boolean booleanValue = (Boolean)value;
-
-			return new RBooleanVector(new int[]{booleanValue.booleanValue() ? 1 : 0}, null);
+			return new RBooleanVector((Boolean)value, null);
 		} else
 
 		if(value instanceof String){
-			String stringValue = (String)value;
-
-			return new RStringVector(Collections.singletonList(stringValue), null);
+			return new RStringVector((String)value, null);
 		} else
 
 		{
@@ -235,34 +218,18 @@ public class RExpUtil {
 
 	static
 	private RVector<?> createVector(List<?> values){
-		Object value = values.get(0);
+		Object value = (values.iterator()).next();
 
-		if(value instanceof Double){
-			return new RDoubleVector(Doubles.toArray((List)values), null);
-		} else
-
-		if(value instanceof Float){
-			double[] floatValues = new double[values.size()];
-
-			for(int i = 0; i < values.size(); i++){
-				floatValues[i] = ((Float)values.get(i)).floatValue();
-			}
-
-			return new RDoubleVector(floatValues, null);
+		if(value instanceof Double || value instanceof Float){
+			return new RDoubleVector((List)values, null);
 		} else
 
 		if(value instanceof Integer){
-			return new RIntegerVector(Ints.toArray((List)values), null);
+			return new RIntegerVector((List)values, null);
 		} else
 
 		if(value instanceof Boolean){
-			int[] booleanValues = new int[values.size()];
-
-			for(int i = 0; i < values.size(); i++){
-				booleanValues[i] = ((Boolean)values.get(i)).booleanValue() ? 1 : 0;
-			}
-
-			return new RBooleanVector(booleanValues, null);
+			return new RBooleanVector((List)values, null);
 		} else
 
 		if(value instanceof String){
