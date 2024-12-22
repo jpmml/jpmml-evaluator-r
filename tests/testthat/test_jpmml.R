@@ -43,4 +43,19 @@ test_that("evaluateAll(Evaluator, data.frame)", {
 	expect_true(is.data.frame(resultsDf))
 	expect_equal(c(150, 4), dim(resultsDf))
 	expect_equal(c("Species", "probability(setosa)", "probability(versicolor)", "probability(virginica)"), colnames(resultsDf))
+	expect_true(is.factor(resultsDf$Species))
+	expect_equal(c("setosa", "versicolor", "virginica"), levels(resultsDf$Species))
+	expect_true(is.double(resultsDf$`probability(setosa)`))
+})
+
+resultsDf = evaluator %>%
+	evaluateAll(argumentsDf, stringsAsFactors = FALSE)
+
+test_that("evaluateAll(Evaluator, data.frame, logical)", {
+	expect_true(is.data.frame(resultsDf))
+	expect_equal(c(150, 4), dim(resultsDf))
+	expect_equal(c("Species", "probability(setosa)", "probability(versicolor)", "probability(virginica)"), colnames(resultsDf))
+	expect_true(is.character(resultsDf$Species))
+	expect_equal(c("setosa", "versicolor", "virginica"), unique(resultsDf$Species))
+	expect_true(is.double(resultsDf$`probability(setosa)`))
 })

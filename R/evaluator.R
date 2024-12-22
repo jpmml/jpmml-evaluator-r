@@ -34,6 +34,8 @@ unserializeResults = function(rdsResults){
 	return(results)
 }
 
+setClassUnion("OptionalLogical", c("logical", "missing"))
+
 setGeneric("evaluate",
 	def = function(evaluator, arguments){
 		standardGeneric("evaluate")
@@ -50,16 +52,19 @@ setMethod("evaluate",
 )
 
 setGeneric("evaluateAll",
-	def = function(evaluator, argumentsDf){
+	def = function(evaluator, argumentsDf, stringsAsFactors = TRUE){
 		standardGeneric("evaluateAll")
 	}
 )
 setMethod("evaluateAll",
-	signature = c("Evaluator", "data.frame"),
-	definition = function(evaluator, argumentsDf){
+	signature = c("Evaluator", "data.frame", "OptionalLogical"),
+	definition = function(evaluator, argumentsDf, stringsAsFactors){
 		rdsArgumentsDf = serializeArguments(argumentsDf)
-		rdsResultsDf = J("org.jpmml.evaluator.rexp.RExpUtil")$evaluateAll(evaluator@javaEvaluator, rdsArgumentsDf)
-		resultsDf = data.frame(unserializeResults(rdsResultsDf), check.names = FALSE)
+		if(missing(stringsAsFactors)){
+			stringsAsFactors = TRUE
+		}
+		rdsResultsDf = J("org.jpmml.evaluator.rexp.RExpUtil")$evaluateAll(evaluator@javaEvaluator, rdsArgumentsDf, stringsAsFactors)
+		resultsDf = data.frame(unserializeResults(rdsResultsDf), check.names = FALSE, stringsAsFactors = stringsAsFactors)
 		return(resultsDf)
 	}
 )

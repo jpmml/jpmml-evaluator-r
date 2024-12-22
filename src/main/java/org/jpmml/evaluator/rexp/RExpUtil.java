@@ -68,16 +68,16 @@ public class RExpUtil {
 	}
 
 	static
-	public byte[] evaluateAll(Evaluator evaluator, byte[] dataFrameBytes) throws Exception {
+	public byte[] evaluateAll(Evaluator evaluator, byte[] dataFrameBytes, boolean stringsAsFactors) throws Exception {
 		RGenericVector argumentsDataFrame = (RGenericVector)unserialize(dataFrameBytes);
 
-		RGenericVector resultsDataFrame = evaluateAll(evaluator, argumentsDataFrame);
+		RGenericVector resultsDataFrame = evaluateAll(evaluator, argumentsDataFrame, stringsAsFactors);
 
 		return serialize(resultsDataFrame);
 	}
 
 	static
-	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame){
+	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame, boolean stringsAsFactors){
 		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
 		TableReader argumentsReader = new TableReader(argumentsTable){
@@ -112,7 +112,7 @@ public class RExpUtil {
 
 		resultsTable.canonicalize();
 
-		return formatDataFrame(resultsTable);
+		return formatDataFrame(resultsTable, stringsAsFactors);
 	}
 
 	static
@@ -174,7 +174,7 @@ public class RExpUtil {
 	}
 
 	static
-	private RGenericVector formatDataFrame(Table table){
+	private RGenericVector formatDataFrame(Table table, boolean stringsAsFactors){
 		List<String> names = new ArrayList<>(table.getColumns());
 		List<RExp> vectors = new ArrayList<>();
 
@@ -182,6 +182,14 @@ public class RExpUtil {
 			List<?> values = table.getValues(name);
 
 			RVector<?> vector = createVector(values);
+
+			if(vector instanceof RStringVector){
+				RStringVector stringVector = (RStringVector)vector;
+
+				if(stringsAsFactors){
+					vector = stringVector.toFactorVector();
+				}
+			}
 
 			vectors.add(vector);
 		}
