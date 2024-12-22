@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jpmml.evaluator.Evaluator;
 import org.jpmml.evaluator.EvaluatorUtil;
@@ -105,9 +106,13 @@ public class RExpUtil {
 
 			resultsWriter.next();
 
-			Map<String, ?> results = evaluator.evaluate(arguments);
+			try {
+				Map<String, ?> results = evaluator.evaluate(arguments);
 
-			resultsWriter.putAll(results);
+				resultsWriter.putAll(results);
+			} catch(Exception e){
+				resultsWriter.put(e);
+			}
 		}
 
 		resultsTable.canonicalize();
@@ -194,8 +199,29 @@ public class RExpUtil {
 			vectors.add(vector);
 		}
 
+		List<Exception> exceptions = table.getExceptions();
+		List<String> errors = null;
+
+		if(containsNonNull(exceptions)){
+			errors = exceptions.stream()
+				.map(exception -> (exception != null ? exception.toString() : null))
+				.collect(Collectors.toList());
+		}
+
 		RGenericVector result = new RGenericVector(vectors, null);
 		result.addAttribute("names", new RStringVector(names, null));
+
+		if(errors != null){
+			RVector<?> vector = new RStringVector(errors, null);
+
+			if(stringsAsFactors){
+				RStringVector stringVector = (RStringVector)vector;
+
+				vector = stringVector.toFactorVector();
+			}
+
+			result.addAttribute("errors", vector);
+		}
 
 		return result;
 	}
@@ -247,6 +273,20 @@ public class RExpUtil {
 		{
 			throw new IllegalArgumentException();
 		}
+	}
+
+	static
+	private <E> boolean containsNonNull(List<E> values){
+
+		for(int i = 0; i < values.size(); i++){
+			E value = values.get(i);
+
+			if(value != null){
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	static

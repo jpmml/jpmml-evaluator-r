@@ -64,7 +64,12 @@ setMethod("evaluateAll",
 			stringsAsFactors = TRUE
 		}
 		rdsResultsDf = J("org.jpmml.evaluator.rexp.RExpUtil")$evaluateAll(evaluator@javaEvaluator, rdsArgumentsDf, stringsAsFactors)
-		resultsDf = data.frame(unserializeResults(rdsResultsDf), check.names = FALSE, stringsAsFactors = stringsAsFactors)
+		resultsDf = unserializeResults(rdsResultsDf)
+		errors = attr(resultsDf, "errors")
+		resultsDf = data.frame(resultsDf, check.names = FALSE, stringsAsFactors = stringsAsFactors)
+		if(!is.null(errors)){
+			attr(resultsDf, "errors") = errors
+		}
 		return(resultsDf)
 	}
 )
