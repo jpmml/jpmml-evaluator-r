@@ -199,10 +199,11 @@ public class RExpUtil {
 			vectors.add(vector);
 		}
 
-		List<Exception> exceptions = table.getExceptions();
 		List<String> errors = null;
 
-		if(containsNonNull(exceptions)){
+		if(table.hasExceptions()){
+			List<Exception> exceptions = table.getExceptions();
+
 			errors = exceptions.stream()
 				.map(exception -> (exception != null ? exception.toString() : null))
 				.collect(Collectors.toList());
@@ -273,20 +274,6 @@ public class RExpUtil {
 		{
 			throw new IllegalArgumentException();
 		}
-	}
-
-	static
-	private <E> boolean containsNonNull(List<E> values){
-
-		for(int i = 0; i < values.size(); i++){
-			E value = values.get(i);
-
-			if(value != null){
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	static
