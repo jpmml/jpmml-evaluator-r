@@ -31,8 +31,7 @@ import java.util.stream.Collectors;
 import org.jpmml.evaluator.Evaluator;
 import org.jpmml.evaluator.EvaluatorUtil;
 import org.jpmml.evaluator.Table;
-import org.jpmml.evaluator.TableReader;
-import org.jpmml.evaluator.TableWriter;
+import org.jpmml.evaluator.TableCollector;
 import org.jpmml.rexp.RBooleanVector;
 import org.jpmml.rexp.RDoubleVector;
 import org.jpmml.rexp.RExp;
@@ -81,41 +80,36 @@ public class RExpUtil {
 	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame, boolean stringsAsFactors){
 		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
-		TableReader argumentsReader = new TableReader(argumentsTable){
+		TableCollector resultsCollector = new TableCollector(){
 
 			@Override
-			public Object get(Object key){
-				return super.get((String)key);
+			protected Table.Row createFinisherRow(Table table){
+				Table.Row result = table.new Row(0){
+
+					@Override
+					public Object put(String key, Object value){
+						value = EvaluatorUtil.decode(value);
+
+						return super.put(key, value);
+					}
+				};
+
+				return result;
 			}
 		};
 
-		Table resultsTable = new Table();
+		Table resultsTable = argumentsTable.stream()
+			.map(arguments -> {
 
-		TableWriter resultsWriter = new TableWriter(resultsTable){
+				try {
+					Map<String, ?> results = evaluator.evaluate(arguments);
 
-			@Override
-			public Object put(String key, Object value){
-				value = EvaluatorUtil.decode(value);
-
-				return super.put(key, value);
-			}
-		};
-
-		while(argumentsReader.hasNext()){
-			Map<String, ?> arguments = argumentsReader.next();
-
-			resultsWriter.next();
-
-			try {
-				Map<String, ?> results = evaluator.evaluate(arguments);
-
-				resultsWriter.putAll(results);
-			} catch(Exception e){
-				resultsWriter.put(e);
-			}
-		}
-
-		resultsTable.canonicalize();
+					return results;
+				} catch(Exception e){
+					return e;
+				}
+			})
+			.collect(resultsCollector);
 
 		return formatDataFrame(resultsTable, stringsAsFactors);
 	}
@@ -164,7 +158,7 @@ public class RExpUtil {
 	private Table parseDataFrame(RGenericVector dataFrame){
 		RStringVector names = dataFrame.names();
 
-		Table result = new Table(names.getDequotedValues());
+		Table result = new Table(names.getDequotedValues(), 256);
 
 		for(int i = 0; i < names.size(); i++){
 			String name = names.getDequotedValue(i);
