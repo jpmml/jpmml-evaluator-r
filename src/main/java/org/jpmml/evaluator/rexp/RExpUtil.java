@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.jpmml.evaluator.Evaluator;
@@ -80,7 +81,22 @@ public class RExpUtil {
 	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame, boolean stringsAsFactors){
 		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
-		TableCollector resultsCollector = new TableCollector(){
+		Function<Table.Row, Object> function = new Function<Table.Row, Object>(){
+
+			@Override
+			public Object apply(Table.Row arguments){
+
+				try {
+					Map<String, ?> results = evaluator.evaluate(arguments);
+
+					return results;
+				} catch(Exception e){
+					return e;
+				}
+			}
+		};
+
+		TableCollector tableCollector = new TableCollector(){
 
 			@Override
 			protected Table.Row createFinisherRow(Table table){
@@ -99,17 +115,8 @@ public class RExpUtil {
 		};
 
 		Table resultsTable = argumentsTable.parallelStream()
-			.map(arguments -> {
-
-				try {
-					Map<String, ?> results = evaluator.evaluate(arguments);
-
-					return results;
-				} catch(Exception e){
-					return e;
-				}
-			})
-			.collect(resultsCollector);
+			.map(function)
+			.collect(tableCollector);
 
 		return formatDataFrame(resultsTable, stringsAsFactors);
 	}
