@@ -98,7 +98,7 @@ public class RExpUtil {
 			}
 		};
 
-		Table resultsTable = argumentsTable.stream()
+		Table resultsTable = argumentsTable.parallelStream()
 			.map(arguments -> {
 
 				try {
