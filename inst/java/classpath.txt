@@ -1,4 +1,4 @@
-jpmml-evaluator-r-1.0-SNAPSHOT.jar
+jpmml-evaluator-r-1.1-SNAPSHOT.jar
 commons-math3-3.1-minified.jar
 guava-19.0-minified.jar
 istack-commons-runtime-4.0.1.jar
