@@ -15,4 +15,4 @@ Depends:
 Suggests:
 	magrittr,
 	testthat
-SystemRequirements: Java (>= 8.0)
+SystemRequirements: Java (>= 11.0)
