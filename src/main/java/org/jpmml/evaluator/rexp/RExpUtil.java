@@ -26,11 +26,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jpmml.evaluator.Evaluator;
+import org.jpmml.evaluator.EvaluatorFunction;
 import org.jpmml.evaluator.EvaluatorUtil;
+import org.jpmml.evaluator.ResultField;
+import org.jpmml.evaluator.ResultTableCollector;
 import org.jpmml.evaluator.Table;
 import org.jpmml.evaluator.TableCollector;
 import org.jpmml.rexp.RBooleanVector;
@@ -81,38 +84,15 @@ public class RExpUtil {
 	public RGenericVector evaluateAll(Evaluator evaluator, RGenericVector argumentsDataFrame, boolean stringsAsFactors){
 		Table argumentsTable = parseDataFrame(argumentsDataFrame);
 
-		Function<Table.Row, Object> function = new Function<Table.Row, Object>(){
+		EvaluatorFunction function = new EvaluatorFunction(evaluator);
 
-			@Override
-			public Object apply(Table.Row arguments){
+		List<ResultField> resultFields = Stream.concat(
+			(evaluator.getTargetFields()).stream(),
+			(evaluator.getOutputFields()).stream()
+		)
+			.collect(Collectors.toList());
 
-				try {
-					Map<String, ?> results = evaluator.evaluate(arguments);
-
-					return results;
-				} catch(Exception e){
-					return e;
-				}
-			}
-		};
-
-		TableCollector tableCollector = new TableCollector(){
-
-			@Override
-			protected Table.Row createFinisherRow(Table table){
-				Table.Row result = table.new Row(0){
-
-					@Override
-					public Object put(String key, Object value){
-						value = EvaluatorUtil.decode(value);
-
-						return super.put(key, value);
-					}
-				};
-
-				return result;
-			}
-		};
+		TableCollector tableCollector = new ResultTableCollector(resultFields, true);
 
 		Table resultsTable = argumentsTable.parallelStream()
 			.map(function)
