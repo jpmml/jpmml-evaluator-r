@@ -9,7 +9,7 @@ This package provides R wrapper classes and functions for the [JPMML-Evaluator](
 
 # Prerequisites #
 
-* Java Platform, Standard Edition 8 or newer.
+* Java Platform, Standard Edition 11 or newer.
 * R 3.3, 4.0 or newer.
 
 # Installation #
