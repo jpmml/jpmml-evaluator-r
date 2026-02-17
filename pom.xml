@@ -40,7 +40,7 @@
 
 	<properties>
 		<jpmml-evaluator.version>1.7.7</jpmml-evaluator.version>
-		<jpmml-r.version>1.7.5</jpmml-r.version>
+		<jpmml-r.version>1.7.9</jpmml-r.version>
 		<guava.version>19.0</guava.version>
 		<commons-math3.version>3.1</commons-math3.version>
 		<project.build.outputTimestamp>2024-08-08T07:15:00Z</project.build.outputTimestamp>
@@ -76,7 +76,11 @@
 			<version>${jpmml-r.version}</version>
 			<exclusions>
 				<exclusion>
-					<groupId>*</groupId>
+					<groupId>org.jpmml</groupId>
+					<artifactId>pmml-converter-testing</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -129,6 +133,7 @@
 								<artifacts>
 									<artifact>com.google.guava:guava</artifact>
 									<artifact>org.apache.commons:commons-math3</artifact>
+									<artifact>org.jpmml:pmml-converter</artifact>
 									<artifact>org.jpmml:pmml-rexp</artifact>
 								</artifacts>
 								<entryPoints>
